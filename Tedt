@@ -1,0 +1,71 @@
+import cv2
+import numpy as np
+
+# Kamera initialisieren
+cap = cv2.VideoCapture(0)
+
+while True:
+    # 1. Kamerabild anzeigen
+    ret, frame = cap.read()
+    if not ret:
+        print("Fehler beim Lesen der Kamera")
+        break
+    
+    # Original Bild kopieren für die Anzeige
+    output = frame.copy()
+    
+    # 4. Vorverarbeitung
+    # Bild in Graustufen konvertieren
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # Gaussian Blur anwenden
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    # Kantenerkennung mit Canny
+    edges = cv2.Canny(blur, 50, 150)
+    
+    # 5. Spielkarte freistellen
+    # Konturen finden
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Durch alle Konturen iterieren
+    for contour in contours:
+        # Fläche der Kontur berechnen
+        area = cv2.contourArea(contour)
+        
+        # Nur Konturen mit einer bestimmten Größe berücksichtigen
+        if 20000 < area < 120000:  # Diese Werte müssen ggf. angepasst werden
+            # Kontur zu Polygon approximieren
+            peri = cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+            
+            # Wenn das Polygon 4 Ecken hat (= Karte)
+            if len(approx) == 4:
+                # Kontur in Grün zeichnen
+                cv2.drawContours(output, [approx], -1, (0, 255, 0), 3)
+                
+                # Karte freistellen
+                # Zielpunkte für die perspektivische Transformation
+                pts2 = np.float32([[0,0], [200,0], [200,300], [0,300]])
+                
+                # Quellpunkte (die 4 Ecken der Karte)
+                pts1 = np.float32(approx.reshape(4,2))
+                
+                # Transformationsmatrix berechnen
+                matrix = cv2.getPerspectiveTransform(pts1, pts2)
+                
+                # Perspektivische Transformation durchführen
+                card = cv2.warpPerspective(frame, matrix, (200, 300))
+                
+                # Freigestellte Karte in separatem Fenster anzeigen
+                cv2.imshow('Freigestellte Karte', card)
+    
+    # Bilder anzeigen
+    cv2.imshow('Original', output)  # Originalbild mit erkannten Karten
+    cv2.imshow('Kanten', edges)     # Kantenbild
+    
+    # Beenden wenn 'q' gedrückt wird
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Aufräumen
+cap.release()
+cv2.destroyAllWindows()
