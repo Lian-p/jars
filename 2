@@ -54,3 +54,32 @@ corner = card[5:45, 5:35]
                 kernel = np.ones((2,2), np.uint8)
                 corner_thresh = cv2.dilate(corner_thresh, kernel, iterations=1)
                 corner_thresh = cv2.erode(corner_thresh, kernel, iterations=1)
+
+
+
+
+
+
+import cv2
+import numpy as np
+
+# Angenommen, 'card' ist das zugeschnittene Bild
+# Rotationswinkel: 188 Grad
+angle = 188
+
+# Bildgröße (Breite und Höhe)
+(h, w) = card.shape[:2]
+
+# Rotationszentrum (z. B. Bildmitte)
+center = (w // 2, h // 2)
+
+# Rotationsmatrix berechnen
+rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)  # Skalierung = 1.0
+
+# Bild drehen
+rotated_card = cv2.warpAffine(card, rotation_matrix, (w, h))
+
+# Ergebnis anzeigen
+cv2.imshow("Rotated Card", rotated_card)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
